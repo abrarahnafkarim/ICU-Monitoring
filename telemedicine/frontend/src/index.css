@@ -1,0 +1,49 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-text font-sans antialiased;
+    background-image:
+      radial-gradient(1200px 600px at 100% -10%, rgba(37, 99, 235, 0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(16, 185, 129, 0.06), transparent 60%);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  /* Lightly frosted card surface used across the app. */
+  .glass-card {
+    @apply rounded-2xl border border-white/5 bg-card/70 shadow-soft backdrop-blur-md;
+  }
+
+  .section-title {
+    @apply text-sm font-semibold uppercase tracking-wider text-muted;
+  }
+}
+
+/* Slim, dark scrollbars to match the medical theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}

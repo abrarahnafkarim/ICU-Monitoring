@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+# Raspberry Pi dependencies (for pi_sender.py + real sensor drivers).
+# Install these ON THE PI:
+#     pip install -r requirements-pi.txt
+# (You do NOT need fastapi/uvicorn on the Pi — it only pushes data out.)
+# ---------------------------------------------------------------------------
+
+# WebSocket client used by pi_sender.py to stream ECG up to the hosted app
+websockets
+
+# Core CircuitPython hardware abstraction (GPIO / I2C on the Pi)
+adafruit-blinka
+
+# ADS1115 16-bit I2C ADC — reads the AD8232 analog ECG output
+adafruit-circuitpython-ads1x15
+
+# I2C bus access for the temperature sensor
+smbus2
+
+# MLX90614 infrared body-temperature sensor (I2C)
+PyMLX90614
+
+# MAX30102 pulse oximeter (HR + SpO2). Not reliably on PyPI — install the
+# community driver, which also ships the `hrcalc` algorithm module:
+#     pip install git+https://github.com/doug-burrell/max30102.git
