@@ -1,0 +1,16 @@
+# Render Blueprint — deploys the FastAPI backend (REST + WebSockets + relay).
+# This file MUST live at the repository root so Render's Blueprint scanner
+# finds it. The service itself is built from telemedicine/backend.
+services:
+  - type: web
+    name: rpm-backend
+    runtime: python
+    rootDir: telemedicine/backend
+    plan: free                      # single instance — required (in-memory relay)
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: RPM_INGEST_TOKEN
+        sync: false                 # set your secret in the Render dashboard

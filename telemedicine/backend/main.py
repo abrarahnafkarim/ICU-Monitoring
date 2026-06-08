@@ -28,7 +28,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from api.routes import router as api_router
+from websocket.camera_ws import camera_consumer, camera_producer
+from websocket.camera_ws import hub as camera_hub
 from websocket.ecg_ws import ecg_consumer, ecg_producer, simulation_loop
+from websocket.ecg_ws import hub as ecg_hub
 
 
 @asynccontextmanager
@@ -67,7 +70,17 @@ def health() -> dict:
     return {
         "service": "Remote Patient Monitoring System",
         "status": "online",
-        "endpoints": ["/patient", "/latest-vitals", "/ingest/vitals", "/ws/ecg", "/ingest/ecg"],
+        "ecg_live": ecg_hub.producer_active(),
+        "camera_live": camera_hub.producer_active(),
+        "endpoints": [
+            "/patient",
+            "/latest-vitals",
+            "/ingest/vitals",
+            "/ws/ecg",
+            "/ingest/ecg",
+            "/ws/camera",
+            "/ingest/camera",
+        ],
     }
 
 
@@ -81,6 +94,18 @@ async def websocket_ecg(websocket: WebSocket) -> None:
 async def websocket_ingest_ecg(websocket: WebSocket) -> None:
     """The Raspberry Pi pushes its ECG stream here."""
     await ecg_producer(websocket)
+
+
+@app.websocket("/ws/camera")
+async def websocket_camera(websocket: WebSocket) -> None:
+    """Browser dashboard subscribes here to receive the camera feed."""
+    await camera_consumer(websocket)
+
+
+@app.websocket("/ingest/camera")
+async def websocket_ingest_camera(websocket: WebSocket) -> None:
+    """The Raspberry Pi pushes its webcam frames here."""
+    await camera_producer(websocket)
 
 
 # --------------------------------------------------------------------------- #

@@ -19,6 +19,7 @@ the scrolling x-axis stays smooth whether the data is simulated or from the Pi.
 
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import List, Set
 
@@ -77,8 +78,6 @@ hub = EcgHub(ad8232.SAMPLE_RATE)
 
 async def simulation_loop() -> None:
     """Emit simulated ECG whenever the Pi isn't actively pushing real data."""
-    import asyncio
-
     while True:
         if hub.consumers and not hub.producer_active():
             values = [ad8232.read_ecg_sample() for _ in range(BATCH_SIZE)]

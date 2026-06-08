@@ -5,8 +5,13 @@
 # (You do NOT need fastapi/uvicorn on the Pi — it only pushes data out.)
 # ---------------------------------------------------------------------------
 
-# WebSocket client used by pi_sender.py to stream ECG up to the hosted app
+# WebSocket client used by pi_sender.py / pi_camera.py to stream up to the app
 websockets
+
+# Webcam capture + JPEG encoding for pi_camera.py.
+# Tip: on a Pi, `sudo apt install -y python3-opencv` is faster than building
+# this wheel. Only needed if you use the camera feature.
+opencv-python-headless
 
 # Core CircuitPython hardware abstraction (GPIO / I2C on the Pi)
 adafruit-blinka

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { AlertPanel } from "../components/AlertPanel";
+import { CameraFeed } from "../components/CameraFeed";
 import { EcgChart } from "../components/EcgChart";
 import { Navbar } from "../components/Navbar";
 import { PatientProfileCard } from "../components/PatientProfileCard";
@@ -35,8 +36,11 @@ export function Dashboard() {
             <EcgChart />
           </div>
 
-          {/* Side column: sensors + alerts */}
+          {/* Side column: camera + sensors + alerts */}
           <div className="flex flex-col gap-5 lg:col-span-4">
+            <div className="animate-fade-in">
+              <CameraFeed />
+            </div>
             <div className="animate-fade-in">
               <SensorStatusPanel />
             </div>

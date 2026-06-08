@@ -265,6 +265,29 @@ itself is covered in **[README.md → Going live](README.md)**.)
 
 ---
 
+## 6b. Add the webcam (optional)
+
+Plug a **USB webcam** into the Pi (a Pi Camera Module also works if exposed as a
+V4L2 device). Install OpenCV and run the camera sender alongside `pi_sender.py`:
+
+```bash
+sudo apt install -y python3-opencv     # faster than pip on a Pi
+export RPM_SERVER="https://your-app.example.com"
+export RPM_INGEST_TOKEN="your-secret"
+python pi_camera.py
+```
+
+It streams JPEG frames to `/ingest/camera`; the dashboard's **Patient Camera**
+card shows them live. Tune with env vars if needed:
+`RPM_CAMERA_INDEX` (default 0), `RPM_CAMERA_WIDTH`/`HEIGHT` (640×480),
+`RPM_CAMERA_FPS` (10), `RPM_CAMERA_QUALITY` (70).
+
+> Video is far heavier than the sensor data. On a free host, keep the
+> resolution/FPS modest (the defaults are fine) — see the bandwidth note in
+> **[README.md](README.md)**.
+
+---
+
 ## 7. Bring-up order (test one sensor at a time)
 
 Edit the sensor files on the Pi, then run `python pi_sender.py` and watch the

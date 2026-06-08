@@ -20,6 +20,7 @@ const WS_BASE = API_BASE.replace(/^http/, "ws");
 export const config = {
   apiBase: API_BASE,
   ecgSocketUrl: `${WS_BASE}/ws/ecg`,
+  cameraSocketUrl: `${WS_BASE}/ws/camera`,
   /** How often (ms) to poll REST vitals. */
   vitalsPollInterval: 2000,
   /** Seconds of ECG history kept visible in the scrolling chart. */

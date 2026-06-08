@@ -19,6 +19,7 @@ sources can be swapped for real **Raspberry Pi** hardware drivers
   - Patient profile card (name, ID, age, gender, status).
   - Four live metric cards: Heart Rate, SpO₂, Body Temperature, ECG Status.
   - **Live ECG** — real-time, scrolling, medical-monitor-style Plotly chart (last 10 s).
+  - **Live camera** — webcam video feed (JPEG frames relayed from the Pi).
   - Sensor status panel (AD8232 / MAX30102 / MLX90614).
   - Alert panel with clinical threshold rules.
 - 🎨 Premium dark-mode healthcare-SaaS theme, glassmorphism, fully responsive
@@ -44,13 +45,15 @@ telemedicine/
 ├── backend/                    # the HOSTED app (serves site + receives Pi data)
 │   ├── main.py                 # FastAPI app + routes/WS + serves built frontend
 │   ├── state.py                # in-memory store for the latest pushed vitals
-│   ├── pi_sender.py            # RUN ON THE PI: pushes sensor data up to the app
+│   ├── pi_sender.py            # RUN ON THE PI: pushes vitals + ECG up to the app
+│   ├── pi_camera.py            # RUN ON THE PI: pushes webcam frames up to the app
 │   ├── requirements.txt        # server deps
-│   ├── requirements-pi.txt     # Pi deps (sender + hardware drivers)
+│   ├── requirements-pi.txt     # Pi deps (sender + camera + hardware drivers)
 │   ├── api/
 │   │   └── routes.py           # GET /patient, /latest-vitals; POST /ingest/vitals
 │   ├── websocket/
-│   │   └── ecg_ws.py           # ECG hub: /ws/ecg (browser) + /ingest/ecg (Pi)
+│   │   ├── ecg_ws.py           # ECG hub: /ws/ecg (browser) + /ingest/ecg (Pi)
+│   │   └── camera_ws.py        # camera hub: /ws/camera + /ingest/camera
 │   └── sensors/
 │       ├── ecg_simulator.py    # realistic P-QRS-T waveform generator
 │       ├── ad8232.py           # ECG sensor interface (read_ecg_sample)
@@ -86,10 +89,11 @@ which serves the dashboard and relays the data to browsers:
 ```text
  ┌──────────────┐   POST /ingest/vitals    ┌──────────────────┐   GET /latest-vitals  ┌──────────┐
  │ Raspberry Pi │ ───────────────────────► │   Hosted FastAPI  │ ────────────────────► │ Browser  │
- │ (pi_sender)  │   WS   /ingest/ecg        │  app (your domain)│   WS   /ws/ecg        │ dashboard│
+ │ (pi_sender   │   WS   /ingest/ecg        │  app (your domain)│   WS   /ws/ecg        │ dashboard│
+ │  pi_camera)  │   WS   /ingest/camera     │                  │   WS   /ws/camera     │          │
  └──────────────┘ ───────────────────────► └──────────────────┘ ────────────────────► └──────────┘
-        reads sensors                         keeps latest +                            shows live
-                                              serves the website                         vitals + ECG
+   reads sensors                              keeps latest +                            shows live
+   + webcam                                   serves the website                  vitals + ECG + video
 ```
 
 - **No Pi connected?** The hosted app falls back to **simulated** data, so the
@@ -183,12 +187,15 @@ Pi, then:
 pip install -r requirements-pi.txt
 export RPM_SERVER="https://your-app.example.com"
 export RPM_INGEST_TOKEN="choose-a-secret"     # must match the server
-python pi_sender.py
+
+python pi_sender.py     # vitals + ECG
+python pi_camera.py     # webcam feed (optional, run in a second terminal)
 ```
 
 The Pi starts pushing vitals (HTTP) + ECG (WebSocket) and the live dashboard
-switches from simulated to real data automatically. Wiring + real sensor code:
-**[HARDWARE.md](HARDWARE.md)**.
+switches from simulated to real data automatically. `pi_camera.py` adds the
+webcam feed (defaults to 640×480 @ ~10 fps to stay light on free hosts).
+Wiring + real sensor code: **[HARDWARE.md](HARDWARE.md)**.
 
 ---
 
@@ -203,6 +210,8 @@ switches from simulated to real data automatically. Wiring + real sensor code:
 | POST   | `/ingest/vitals` | **Pi → server**: push a vitals reading (JSON)    |
 | WS     | `/ws/ecg`        | **Server → browser**: streams ECG sample batches |
 | WS     | `/ingest/ecg`    | **Pi → server**: push ECG sample batches         |
+| WS     | `/ws/camera`     | **Server → browser**: streams JPEG webcam frames |
+| WS     | `/ingest/camera` | **Pi → server**: push JPEG webcam frames         |
 
 **ECG WebSocket message shape**
 
