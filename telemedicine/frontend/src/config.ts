@@ -12,7 +12,12 @@ const DEFAULT_BASE = import.meta.env.DEV
   ? "http://localhost:8000"
   : window.location.origin;
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? DEFAULT_BASE;
+// Strip any trailing slash(es) so a value like "https://host/" doesn't turn
+// into broken "//latest-vitals" / "//ws/ecg" URLs.
+const API_BASE = (import.meta.env.VITE_API_BASE ?? DEFAULT_BASE).replace(
+  /\/+$/,
+  ""
+);
 
 // Derive the WebSocket origin from the HTTP base (http -> ws, https -> wss).
 const WS_BASE = API_BASE.replace(/^http/, "ws");
