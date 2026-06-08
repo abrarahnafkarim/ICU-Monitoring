@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { useClock } from "../hooks/useClock";
+import { InstallButton } from "./InstallButton";
 import { OnlineIndicator } from "./ui/OnlineIndicator";
 
 interface NavbarProps {
@@ -30,8 +31,8 @@ export function Navbar({ online = true }: NavbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-20 border-b border-white/5 bg-background/70 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <header className="safe-top sticky top-0 z-20 border-b border-white/5 bg-background/70 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-3 sm:px-6">
         <button
           onClick={() => navigate("/")}
           className="flex items-center gap-3 text-left"
@@ -54,6 +55,7 @@ export function Navbar({ online = true }: NavbarProps) {
             {formatTime(now)}
           </span>
           <OnlineIndicator online={online} label={online ? "Online" : "Offline"} />
+          <InstallButton />
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-white/[0.06] hover:text-text"

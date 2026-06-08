@@ -5,18 +5,43 @@
 @tailwind utilities;
 
 @layer base {
-  html,
+  html {
+    height: 100%;
+    /* Don't let mobile browsers auto-resize text. */
+    -webkit-text-size-adjust: 100%;
+    /* No blue tap-flash on touch — feels native. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body,
   #root {
-    height: 100%;
+    min-height: 100%;
   }
 
   body {
     @apply bg-background text-text font-sans antialiased;
+    /* Use the dynamic viewport unit so it fills the screen on mobile. */
+    min-height: 100dvh;
     background-image:
       radial-gradient(1200px 600px at 100% -10%, rgba(37, 99, 235, 0.10), transparent 60%),
       radial-gradient(900px 500px at -10% 110%, rgba(16, 185, 129, 0.06), transparent 60%);
     background-attachment: fixed;
+    /* Stop pull-to-refresh / rubber-band bounce so it behaves like an app. */
+    overscroll-behavior-y: none;
+  }
+
+  /* Images/icons shouldn't be long-press-draggable on touch. */
+  img,
+  svg {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  /* Comfortable, deliberate touch targets. */
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
   }
 }
 
@@ -28,6 +53,14 @@
 
   .section-title {
     @apply text-sm font-semibold uppercase tracking-wider text-muted;
+  }
+
+  /* Safe-area insets for notched phones in standalone (installed) mode. */
+  .safe-top {
+    padding-top: calc(env(safe-area-inset-top) + 0.75rem);
+  }
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1.5rem);
   }
 }
 

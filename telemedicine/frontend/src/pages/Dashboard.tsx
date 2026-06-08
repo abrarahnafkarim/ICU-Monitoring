@@ -20,7 +20,7 @@ export function Dashboard() {
     <div className="min-h-screen">
       <Navbar online={status === "online"} />
 
-      <main className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6">
+      <main className="safe-bottom mx-auto flex max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6">
         <div className="animate-fade-in">
           <PatientProfileCard patient={patient} />
         </div>
