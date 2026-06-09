@@ -22,7 +22,7 @@ router = APIRouter()
 
 # --- Single demo patient -------------------------------------------------- #
 PATIENT = {
-    "name": "Abrar Ahnaf",
+    "name": "Patient 1",
     "patient_id": "P-001",
     "age": 22,
     "gender": "Male",
