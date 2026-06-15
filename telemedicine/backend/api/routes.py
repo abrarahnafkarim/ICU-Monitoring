@@ -3,14 +3,15 @@ REST API routes for the Remote Patient Monitoring demo.
 
 Endpoints
 ---------
-GET  /patient        -> static demo patient profile
+GET  /patient        -> first demo patient profile (back-compat)
+GET  /patients       -> all demo patient profiles
 GET  /latest-vitals  -> latest vitals (pushed by the Pi, else simulated)
 POST /ingest/vitals  -> the Raspberry Pi pushes a vitals reading here
 """
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
@@ -20,14 +21,28 @@ from sensors import ad8232, max30102, mlx90614
 
 router = APIRouter()
 
-# --- Single demo patient -------------------------------------------------- #
-PATIENT = {
-    "name": "Patient 1",
-    "patient_id": "P-001",
-    "age": 22,
-    "gender": "Male",
-    "status": "Monitoring Active",
-}
+# --- Demo patients -------------------------------------------------------- #
+# Both patients are fed by the same live data source (one Pi). They differ
+# only in their profile; the dashboard shows the same vitals/ECG/camera.
+PATIENTS = [
+    {
+        "name": "Patient 1",
+        "patient_id": "P-001",
+        "age": 22,
+        "gender": "Male",
+        "status": "Monitoring Active",
+    },
+    {
+        "name": "Patient 2",
+        "patient_id": "P-002",
+        "age": 22,
+        "gender": "Male",
+        "status": "Monitoring Active",
+    },
+]
+
+# First patient kept for the back-compatible single-patient endpoint.
+PATIENT = PATIENTS[0]
 
 
 # --- Models --------------------------------------------------------------- #
@@ -64,8 +79,14 @@ def _classify_ecg(heart_rate: int) -> str:
 
 @router.get("/patient", response_model=Patient)
 def get_patient() -> Patient:
-    """Return the demo patient's profile information."""
+    """Return the first demo patient's profile (back-compatible)."""
     return Patient(**PATIENT)
+
+
+@router.get("/patients", response_model=List[Patient])
+def get_patients() -> List[Patient]:
+    """Return all demo patient profiles."""
+    return [Patient(**p) for p in PATIENTS]
 
 
 @router.get("/latest-vitals", response_model=Vitals)

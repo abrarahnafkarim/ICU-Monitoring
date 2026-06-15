@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useParams } from "react-router-dom";
 
 import { AlertPanel } from "../components/AlertPanel";
 import { CameraFeed } from "../components/CameraFeed";
@@ -12,7 +13,8 @@ import { useVitals } from "../hooks/useVitals";
 import { computeAlerts } from "../lib/alerts";
 
 export function Dashboard() {
-  const patient = usePatient();
+  const { patientId } = useParams<{ patientId: string }>();
+  const patient = usePatient(patientId);
   const { vitals, status } = useVitals();
   const alerts = useMemo(() => computeAlerts(vitals), [vitals]);
 

@@ -30,7 +30,7 @@ export default function App() {
         }
       />
       <Route
-        path="/dashboard"
+        path="/dashboard/:patientId"
         element={
           <RequireAuth>
             <Dashboard />

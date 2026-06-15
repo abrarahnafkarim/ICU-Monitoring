@@ -15,6 +15,9 @@ export const api = {
   /** Fetch the demo patient profile. */
   getPatient: () => getJson<Patient>("/patient"),
 
+  /** Fetch all demo patient profiles. */
+  getPatients: () => getJson<Patient[]>("/patients"),
+
   /** Fetch the latest vital signs. */
   getLatestVitals: () => getJson<Vitals>("/latest-vitals"),
 };
