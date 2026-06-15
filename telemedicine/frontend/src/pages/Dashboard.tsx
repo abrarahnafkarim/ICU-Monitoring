@@ -15,7 +15,7 @@ import { computeAlerts } from "../lib/alerts";
 export function Dashboard() {
   const { patientId } = useParams<{ patientId: string }>();
   const patient = usePatient(patientId);
-  const { vitals, status } = useVitals();
+  const { vitals, status } = useVitals(patient.patient_id);
   const alerts = useMemo(() => computeAlerts(vitals), [vitals]);
 
   return (
@@ -35,7 +35,7 @@ export function Dashboard() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
           {/* Centerpiece: live ECG */}
           <div className="animate-fade-in lg:col-span-8">
-            <EcgChart />
+            <EcgChart patientId={patient.patient_id} />
           </div>
 
           {/* Side column: camera + sensors + alerts */}

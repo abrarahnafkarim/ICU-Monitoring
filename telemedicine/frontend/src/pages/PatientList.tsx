@@ -5,7 +5,7 @@ import { Navbar } from "../components/Navbar";
 import { OnlineIndicator } from "../components/ui/OnlineIndicator";
 import { usePatients } from "../hooks/usePatient";
 import { useVitals } from "../hooks/useVitals";
-import type { Patient, Vitals } from "../types";
+import type { Patient } from "../types";
 
 function MiniVital({
   icon: Icon,
@@ -29,15 +29,15 @@ function MiniVital({
 
 function PatientCard({
   patient,
-  vitals,
-  online,
   onOpen,
 }: {
   patient: Patient;
-  vitals: Vitals | null;
-  online: boolean;
   onOpen: () => void;
 }) {
+  // Each card polls its own patient, so Patient 2 shows its independent data.
+  const { vitals, status } = useVitals(patient.patient_id);
+  const online = status === "online";
+
   return (
     <button
       onClick={onOpen}
@@ -91,12 +91,12 @@ function PatientCard({
 export function PatientList() {
   const navigate = useNavigate();
   const patients = usePatients();
-  const { vitals, status } = useVitals();
-  const online = status === "online";
+  // Navbar status follows the primary (Pi-backed) patient.
+  const { status } = useVitals("P-001");
 
   return (
     <div className="min-h-screen">
-      <Navbar online={online} />
+      <Navbar online={status === "online"} />
 
       <main className="safe-bottom mx-auto max-w-7xl px-4 pt-8 sm:px-6">
         <div className="mb-6 animate-fade-in">
@@ -113,8 +113,6 @@ export function PatientList() {
             <PatientCard
               key={patient.patient_id}
               patient={patient}
-              vitals={vitals}
-              online={online}
               onOpen={() => navigate(`/dashboard/${patient.patient_id}`)}
             />
           ))}

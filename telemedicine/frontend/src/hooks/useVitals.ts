@@ -12,8 +12,11 @@ interface UseVitalsResult {
 /**
  * Polls `GET /latest-vitals` on a fixed interval and exposes the most recent
  * reading along with the backend connection status.
+ *
+ * Pass a patient id to fetch that patient's vitals (Patient 2 returns its own
+ * independent simulation; Patient 1 / no id uses the Pi or its fallback).
  */
-export function useVitals(): UseVitalsResult {
+export function useVitals(patientId?: string): UseVitalsResult {
   const [vitals, setVitals] = useState<Vitals | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
 
@@ -23,7 +26,7 @@ export function useVitals(): UseVitalsResult {
 
     const poll = async () => {
       try {
-        const data = await api.getLatestVitals();
+        const data = await api.getLatestVitals(patientId);
         if (!active) return;
         setVitals(data);
         setStatus("online");
@@ -42,7 +45,7 @@ export function useVitals(): UseVitalsResult {
       active = false;
       if (timer) window.clearTimeout(timer);
     };
-  }, []);
+  }, [patientId]);
 
   return { vitals, status };
 }

@@ -4,6 +4,7 @@ import { Activity } from "lucide-react";
 
 import { config } from "../config";
 import { useEcgStream } from "../hooks/useEcgStream";
+import { useSimulatedEcg } from "../hooks/useSimulatedEcg";
 import type { ConnectionStatus, EcgSample } from "../types";
 import { Card } from "./ui/Card";
 import { OnlineIndicator } from "./ui/OnlineIndicator";
@@ -20,12 +21,11 @@ const STATUS_LABEL: Record<ConnectionStatus, string> = {
 };
 
 /**
- * Real-time scrolling ECG waveform — the visual centerpiece of the
- * dashboard. Samples arrive over the `/ws/ecg` WebSocket and are appended
- * to a single Plotly WebGL trace; the x-axis range follows the latest
- * sample so the trace scrolls smoothly like a bedside monitor.
+ * Sets up the Plotly WebGL trace and returns a ref for the plot container plus
+ * a `handleSamples` callback that appends batches and scrolls the window.
+ * Shared by both the live (WebSocket) and simulated ECG charts.
  */
-export function EcgChart() {
+function useEcgPlot() {
   const plotRef = useRef<HTMLDivElement>(null);
   const readyRef = useRef(false);
   const maxPointsRef = useRef(WINDOW_SECONDS * 250);
@@ -98,8 +98,17 @@ export function EcgChart() {
     Plotly.relayout(el, { "xaxis.range": [latest - WINDOW_SECONDS, latest] });
   }, []);
 
-  const status = useEcgStream(handleSamples);
+  return { plotRef, handleSamples };
+}
 
+/** Presentational ECG card shared by the live and simulated variants. */
+function EcgCard({
+  plotRef,
+  status,
+}: {
+  plotRef: React.RefObject<HTMLDivElement>;
+  status: ConnectionStatus;
+}) {
   return (
     <Card className="flex flex-col gap-3 p-5">
       <div className="flex items-center justify-between">
@@ -125,4 +134,29 @@ export function EcgChart() {
       <div className="h-[300px] w-full sm:h-[340px]" ref={plotRef} />
     </Card>
   );
+}
+
+/** Live ECG from the `/ws/ecg` WebSocket (Patient 1 / the Pi). */
+function LiveEcgChart() {
+  const { plotRef, handleSamples } = useEcgPlot();
+  const status = useEcgStream(handleSamples);
+  return <EcgCard plotRef={plotRef} status={status} />;
+}
+
+/** Independent, browser-simulated ECG (Patient 2). */
+function SimulatedEcgChart() {
+  const { plotRef, handleSamples } = useEcgPlot();
+  useSimulatedEcg(handleSamples, 88);
+  return <EcgCard plotRef={plotRef} status="online" />;
+}
+
+/**
+ * Real-time scrolling ECG waveform — the visual centerpiece of the dashboard.
+ *
+ * Patient 1 streams from the `/ws/ecg` WebSocket (the Pi, or its simulation
+ * fallback). Patient 2 runs an independent in-browser simulation so its trace
+ * is visibly different.
+ */
+export function EcgChart({ patientId }: { patientId?: string }) {
+  return patientId === "P-002" ? <SimulatedEcgChart /> : <LiveEcgChart />;
 }

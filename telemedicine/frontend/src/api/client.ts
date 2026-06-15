@@ -18,6 +18,11 @@ export const api = {
   /** Fetch all demo patient profiles. */
   getPatients: () => getJson<Patient[]>("/patients"),
 
-  /** Fetch the latest vital signs. */
-  getLatestVitals: () => getJson<Vitals>("/latest-vitals"),
+  /** Fetch the latest vital signs (optionally for a specific patient). */
+  getLatestVitals: (patientId?: string) =>
+    getJson<Vitals>(
+      patientId
+        ? `/latest-vitals?patient=${encodeURIComponent(patientId)}`
+        : "/latest-vitals",
+    ),
 };

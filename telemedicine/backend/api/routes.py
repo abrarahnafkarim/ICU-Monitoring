@@ -11,6 +11,7 @@ POST /ingest/vitals  -> the Raspberry Pi pushes a vitals reading here
 
 from __future__ import annotations
 
+import random
 from typing import List, Optional
 
 from fastapi import APIRouter, Header, HTTPException
@@ -77,6 +78,33 @@ def _classify_ecg(heart_rate: int) -> str:
     return "Normal"
 
 
+# --- Patient 2: independent simulation ------------------------------------ #
+# There is only one Pi, so Patient 2 never uses real hardware data. It runs its
+# own random-walk simulation with different baselines from Patient 1, so the two
+# dashboards show clearly distinct vitals.
+_P2 = {"hr": 88.0, "spo2": 96.0, "temp": 37.4}
+
+
+def _simulate_patient2() -> "Vitals":
+    """Generate independent simulated vitals for Patient 2."""
+    _P2["hr"] += random.gauss(0.0, 0.9) + (88.0 - _P2["hr"]) * 0.05
+    _P2["hr"] = max(70.0, min(105.0, _P2["hr"]))
+
+    _P2["spo2"] += random.gauss(0.0, 0.25) + (96.0 - _P2["spo2"]) * 0.1
+    _P2["spo2"] = max(93.0, min(99.0, _P2["spo2"]))
+
+    _P2["temp"] += random.gauss(0.0, 0.04) + (37.4 - _P2["temp"]) * 0.05
+    _P2["temp"] = max(36.8, min(38.2, _P2["temp"]))
+
+    heart_rate = int(round(_P2["hr"]))
+    return Vitals(
+        heart_rate=heart_rate,
+        spo2=int(round(_P2["spo2"])),
+        temperature=round(_P2["temp"], 1),
+        ecg_status=_classify_ecg(heart_rate),
+    )
+
+
 @router.get("/patient", response_model=Patient)
 def get_patient() -> Patient:
     """Return the first demo patient's profile (back-compatible)."""
@@ -90,14 +118,18 @@ def get_patients() -> List[Patient]:
 
 
 @router.get("/latest-vitals", response_model=Vitals)
-def get_latest_vitals() -> Vitals:
+def get_latest_vitals(patient: Optional[str] = None) -> Vitals:
     """
-    Return the latest vitals.
+    Return the latest vitals for a patient.
 
-    Prefers the most recent reading pushed by the Pi; if none has arrived
-    (or it is stale), falls back to locally simulated values so the dashboard
-    still works for a demo.
+    Patient 2 (``?patient=P-002``) always returns its own independent
+    simulation. Patient 1 (the default) prefers the most recent reading pushed
+    by the Pi; if none has arrived (or it is stale), it falls back to locally
+    simulated values so the dashboard still works for a demo.
     """
+    if patient == "P-002":
+        return _simulate_patient2()
+
     pushed = state.get_fresh_vitals()
     if pushed is not None:
         return Vitals(**pushed)
