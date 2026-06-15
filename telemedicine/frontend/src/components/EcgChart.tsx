@@ -146,7 +146,7 @@ function LiveEcgChart() {
 /** Independent, browser-simulated ECG (Patient 2). */
 function SimulatedEcgChart() {
   const { plotRef, handleSamples } = useEcgPlot();
-  useSimulatedEcg(handleSamples, 88);
+  useSimulatedEcg(handleSamples, 78);
   return <EcgCard plotRef={plotRef} status="online" />;
 }
 

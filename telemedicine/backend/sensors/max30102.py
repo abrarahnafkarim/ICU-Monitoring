@@ -30,8 +30,8 @@ def read_heart_rate() -> int:
     """Return the current heart rate in beats per minute (BPM)."""
     global _hr
     # Random walk that drifts back toward the baseline.
-    _hr += random.gauss(0.0, 0.8) + (_HR_BASELINE - _hr) * 0.05
-    _hr = max(60.0, min(95.0, _hr))
+    _hr += random.gauss(0.0, 0.6) + (_HR_BASELINE - _hr) * 0.08
+    _hr = max(70.0, min(80.0, _hr))
     return int(round(_hr))
 
 

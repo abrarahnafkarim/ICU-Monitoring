@@ -80,21 +80,21 @@ def _classify_ecg(heart_rate: int) -> str:
 
 # --- Patient 2: independent simulation ------------------------------------ #
 # There is only one Pi, so Patient 2 never uses real hardware data. It runs its
-# own random-walk simulation with different baselines from Patient 1, so the two
-# dashboards show clearly distinct vitals.
-_P2 = {"hr": 88.0, "spo2": 96.0, "temp": 37.4}
+# own random-walk simulation with baselines just slightly offset from Patient 1,
+# so the two dashboards differ by only a small, realistic amount.
+_P2 = {"hr": 78.0, "spo2": 97.0, "temp": 36.9}
 
 
 def _simulate_patient2() -> "Vitals":
     """Generate independent simulated vitals for Patient 2."""
-    _P2["hr"] += random.gauss(0.0, 0.9) + (88.0 - _P2["hr"]) * 0.05
-    _P2["hr"] = max(70.0, min(105.0, _P2["hr"]))
+    _P2["hr"] += random.gauss(0.0, 0.6) + (78.0 - _P2["hr"]) * 0.08
+    _P2["hr"] = max(70.0, min(80.0, _P2["hr"]))
 
-    _P2["spo2"] += random.gauss(0.0, 0.25) + (96.0 - _P2["spo2"]) * 0.1
-    _P2["spo2"] = max(93.0, min(99.0, _P2["spo2"]))
+    _P2["spo2"] += random.gauss(0.0, 0.2) + (97.0 - _P2["spo2"]) * 0.1
+    _P2["spo2"] = max(96.0, min(99.0, _P2["spo2"]))
 
-    _P2["temp"] += random.gauss(0.0, 0.04) + (37.4 - _P2["temp"]) * 0.05
-    _P2["temp"] = max(36.8, min(38.2, _P2["temp"]))
+    _P2["temp"] += random.gauss(0.0, 0.03) + (36.9 - _P2["temp"]) * 0.06
+    _P2["temp"] = max(36.6, min(37.2, _P2["temp"]))
 
     heart_rate = int(round(_P2["hr"]))
     return Vitals(
