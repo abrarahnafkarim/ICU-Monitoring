@@ -18,7 +18,7 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 import state
-from sensors import ad8232, max30102, mlx90614
+from sensors import ad8232, max30102, mlx90614, respiration
 
 router = APIRouter()
 
@@ -60,6 +60,7 @@ class Vitals(BaseModel):
     spo2: int
     temperature: float
     ecg_status: str
+    respiratory_rate: int  # breaths/min, fused from PPG + ECG-derived respiration
 
 
 class VitalsIngest(BaseModel):
@@ -67,6 +68,7 @@ class VitalsIngest(BaseModel):
     spo2: int
     temperature: float
     ecg_status: Optional[str] = None
+    respiratory_rate: Optional[int] = None
 
 
 class Comment(BaseModel):
@@ -99,7 +101,7 @@ def _classify_ecg(heart_rate: int) -> str:
 # There is only one Pi, so Patient 2 never uses real hardware data. It runs its
 # own random-walk simulation with baselines just slightly offset from Patient 1,
 # so the two dashboards differ by only a small, realistic amount.
-_P2 = {"hr": 78.0, "spo2": 97.0, "temp": 36.9}
+_P2 = {"hr": 78.0, "spo2": 97.0, "temp": 36.9, "rr_ppg": 15.0, "rr_edr": 15.0}
 
 
 def _simulate_patient2() -> "Vitals":
@@ -113,12 +115,21 @@ def _simulate_patient2() -> "Vitals":
     _P2["temp"] += random.gauss(0.0, 0.03) + (36.9 - _P2["temp"]) * 0.06
     _P2["temp"] = max(36.6, min(37.2, _P2["temp"]))
 
+    # Two independent respiratory estimates fused through the real algorithm.
+    _P2["rr_ppg"] += random.gauss(0.0, 0.4) + (15.0 - _P2["rr_ppg"]) * 0.06
+    _P2["rr_edr"] += random.gauss(0.0, 0.4) + (15.0 - _P2["rr_edr"]) * 0.06
+    rr_fused, _q, _src = respiration.fuse_respiratory_rate(
+        _P2["rr_ppg"], 0.84, _P2["rr_edr"], 0.86
+    )
+    respiratory_rate = int(round(rr_fused if rr_fused is not None else 15.0))
+
     heart_rate = int(round(_P2["hr"]))
     return Vitals(
         heart_rate=heart_rate,
         spo2=int(round(_P2["spo2"])),
         temperature=round(_P2["temp"], 1),
         ecg_status=_classify_ecg(heart_rate),
+        respiratory_rate=respiratory_rate,
     )
 
 
@@ -154,6 +165,7 @@ def get_latest_vitals(patient: Optional[str] = None) -> Vitals:
     heart_rate = max30102.read_heart_rate()
     spo2 = max30102.read_spo2()
     temperature = mlx90614.read_temperature()
+    respiratory_rate = respiration.read_respiratory_rate()
     ad8232.set_heart_rate(heart_rate)
 
     return Vitals(
@@ -161,6 +173,7 @@ def get_latest_vitals(patient: Optional[str] = None) -> Vitals:
         spo2=spo2,
         temperature=temperature,
         ecg_status=_classify_ecg(heart_rate),
+        respiratory_rate=respiratory_rate,
     )
 
 
@@ -174,12 +187,20 @@ def ingest_vitals(
         raise HTTPException(status_code=401, detail="Invalid ingest token")
 
     ecg_status = payload.ecg_status or _classify_ecg(payload.heart_rate)
+    # The Pi may compute the fused respiratory rate itself; if it doesn't send
+    # one, fall back to the local fused-simulation so the field is always set.
+    respiratory_rate = (
+        payload.respiratory_rate
+        if payload.respiratory_rate is not None
+        else respiration.read_respiratory_rate()
+    )
     state.update_vitals(
         {
             "heart_rate": payload.heart_rate,
             "spo2": payload.spo2,
             "temperature": payload.temperature,
             "ecg_status": ecg_status,
+            "respiratory_rate": respiratory_rate,
         }
     )
     # Keep the simulated-ECG rhythm aligned in case we briefly fall back.

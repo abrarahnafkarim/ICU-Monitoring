@@ -288,6 +288,25 @@ card shows them live. Tune with env vars if needed:
 
 ---
 
+## 6c. Respiratory rate (fused — no extra sensor)
+
+Respiratory rate is **derived** from the sensors you already have and **fused**
+into one value in `sensors/respiration.py`:
+
+- **RR-PPG** (MAX30102): breathing modulates the pulse waveform; extract the
+  ~0.1–0.5 Hz oscillation from a window of IR samples.
+- **EDR** (AD8232): breathing shifts the heart's electrical axis, so the R-peak
+  amplitude rises/falls once per breath; that envelope's frequency is the RR.
+
+The fusion (`fuse_respiratory_rate`) already runs in simulation, so on hardware
+you only replace the two **inputs** (compute `rr_ppg` / `rr_edr` + a 0–1 quality
+each) and pass them in. Typical recipe for each: band-pass 0.1–0.5 Hz → Welch
+PSD → dominant peak in the breathing band; quality = peak prominence / SNR.
+When the two agree it returns a quality-weighted average; when they disagree the
+cleaner signal wins; if one is unusable it falls back to the other.
+
+---
+
 ## 7. Bring-up order (test one sensor at a time)
 
 Edit the sensor files on the Pi, then run `python pi_sender.py` and watch the

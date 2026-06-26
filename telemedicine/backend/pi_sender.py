@@ -29,7 +29,7 @@ import urllib.request
 
 import websockets
 
-from sensors import ad8232, max30102, mlx90614
+from sensors import ad8232, max30102, mlx90614, respiration
 
 SERVER = os.environ.get("RPM_SERVER", "http://localhost:8000").rstrip("/")
 TOKEN = os.environ.get("RPM_INGEST_TOKEN", "")
@@ -58,6 +58,7 @@ def _post_vitals() -> None:
     heart_rate = max30102.read_heart_rate()
     spo2 = max30102.read_spo2()
     temperature = mlx90614.read_temperature()
+    respiratory_rate = respiration.read_respiratory_rate()
     ad8232.set_heart_rate(heart_rate)
 
     body = json.dumps(
@@ -66,6 +67,7 @@ def _post_vitals() -> None:
             "spo2": spo2,
             "temperature": temperature,
             "ecg_status": _classify_ecg(heart_rate),
+            "respiratory_rate": respiratory_rate,
         }
     ).encode()
 

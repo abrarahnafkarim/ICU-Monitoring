@@ -15,6 +15,8 @@ export interface Vitals {
   spo2: number;
   temperature: number;
   ecg_status: string;
+  /** Breaths/min, fused from PPG (MAX30102) + ECG-derived respiration (AD8232). */
+  respiratory_rate: number;
 }
 
 /** A single ECG sample (time in seconds, amplitude). */

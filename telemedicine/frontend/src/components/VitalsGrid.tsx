@@ -1,4 +1,4 @@
-import { Activity, Droplets, HeartPulse, Thermometer } from "lucide-react";
+import { Activity, Droplets, HeartPulse, Thermometer, Wind } from "lucide-react";
 
 import { MetricCard, type MetricAccent } from "./MetricCard";
 import type { Vitals } from "../types";
@@ -10,10 +10,18 @@ function ecgAccent(status: string | undefined): MetricAccent {
   return "warning";
 }
 
-/** The four live-vital metric cards: heart rate, SpO₂, temperature, ECG. */
+function rrAccent(rr: number | undefined): MetricAccent {
+  if (rr === undefined) return "primary";
+  return rr < 12 || rr > 20 ? "warning" : "primary";
+}
+
+/**
+ * The live-vital metric cards: heart rate, SpO₂, temperature, respiratory
+ * rate, and ECG status.
+ */
 export function VitalsGrid({ vitals }: { vitals: Vitals | null }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
       <MetricCard
         label="Heart Rate"
         value={vitals ? vitals.heart_rate : PLACEHOLDER}
@@ -37,6 +45,14 @@ export function VitalsGrid({ vitals }: { vitals: Vitals | null }) {
         icon={Thermometer}
         accent="warning"
         caption="Non-contact infrared"
+      />
+      <MetricCard
+        label="Respiratory Rate"
+        value={vitals ? vitals.respiratory_rate : PLACEHOLDER}
+        unit="br/min"
+        icon={Wind}
+        accent={rrAccent(vitals?.respiratory_rate)}
+        caption="Fused: PPG + ECG-derived"
       />
       <MetricCard
         label="ECG Status"

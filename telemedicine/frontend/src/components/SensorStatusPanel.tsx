@@ -13,13 +13,13 @@ const SENSORS: SensorStatus[] = [
   {
     id: "ad8232",
     name: "AD8232",
-    description: "Single-lead ECG front-end",
+    description: "Single-lead ECG · EDR respiration",
     connected: true,
   },
   {
     id: "max30102",
     name: "MAX30102",
-    description: "Pulse oximeter · HR / SpO₂",
+    description: "Pulse oximeter · HR / SpO₂ / RR",
     connected: true,
   },
   {
