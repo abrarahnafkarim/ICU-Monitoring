@@ -21,7 +21,7 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen">
-      <Navbar online={status === "online"} />
+      <Navbar online={status === "online"} showBack />
 
       <main className="safe-bottom mx-auto flex max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6">
         <div className="animate-fade-in">
