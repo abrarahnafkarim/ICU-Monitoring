@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 
 import { AlertPanel } from "../components/AlertPanel";
 import { CameraFeed } from "../components/CameraFeed";
+import { DoctorComments } from "../components/DoctorComments";
 import { EcgChart } from "../components/EcgChart";
 import { Navbar } from "../components/Navbar";
 import { PatientProfileCard } from "../components/PatientProfileCard";
@@ -48,6 +49,9 @@ export function Dashboard() {
             </div>
             <div className="animate-fade-in">
               <AlertPanel alerts={alerts} />
+            </div>
+            <div className="animate-fade-in">
+              <DoctorComments patientId={patient.patient_id} />
             </div>
           </div>
         </div>

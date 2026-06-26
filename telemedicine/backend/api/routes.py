@@ -69,6 +69,23 @@ class VitalsIngest(BaseModel):
     ecg_status: Optional[str] = None
 
 
+class Comment(BaseModel):
+    id: int
+    patient_id: str
+    author: str
+    text: str
+    timestamp: str  # ISO 8601, UTC
+
+
+class CommentCreate(BaseModel):
+    patient_id: str
+    text: str
+    author: Optional[str] = None
+
+
+_VALID_PATIENT_IDS = {p["patient_id"] for p in PATIENTS}
+
+
 def _classify_ecg(heart_rate: int) -> str:
     """Derive a simple ECG status label from the heart rate."""
     if heart_rate > 120:
@@ -168,3 +185,29 @@ def ingest_vitals(
     # Keep the simulated-ECG rhythm aligned in case we briefly fall back.
     ad8232.set_heart_rate(payload.heart_rate)
     return {"ok": True}
+
+
+# --- Doctor comments ------------------------------------------------------ #
+@router.get("/comments", response_model=List[Comment])
+def get_comments(patient: str) -> List[Comment]:
+    """Return a patient's doctor comments, newest first."""
+    if patient not in _VALID_PATIENT_IDS:
+        raise HTTPException(status_code=404, detail="Unknown patient")
+    return [Comment(**c) for c in state.get_comments(patient)]
+
+
+@router.post("/comments", response_model=Comment)
+def post_comment(payload: CommentCreate) -> Comment:
+    """Add a doctor comment to a patient. Shared with every viewer."""
+    if payload.patient_id not in _VALID_PATIENT_IDS:
+        raise HTTPException(status_code=404, detail="Unknown patient")
+
+    text = payload.text.strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="Comment text is empty")
+    if len(text) > 1000:
+        text = text[:1000]
+
+    author = (payload.author or "Doctor").strip() or "Doctor"
+    created = state.add_comment(payload.patient_id, text, author)
+    return Comment(**created)

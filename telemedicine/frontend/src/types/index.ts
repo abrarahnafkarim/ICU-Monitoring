@@ -50,3 +50,12 @@ export interface Alert {
   title: string;
   detail: string;
 }
+
+/** A doctor's comment on a patient, returned by `GET /comments`. */
+export interface Comment {
+  id: number;
+  patient_id: string;
+  author: string;
+  text: string;
+  timestamp: string; // ISO 8601, UTC
+}

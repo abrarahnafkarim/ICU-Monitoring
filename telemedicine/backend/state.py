@@ -8,15 +8,47 @@ simulated values so the dashboard still shows something during a demo.
 
 from __future__ import annotations
 
+import itertools
 import os
 import time
-from typing import Optional
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
 # Seconds after which an ingested vitals reading is considered stale.
 VITALS_TTL = 6.0
 
 _latest_vitals: Optional[dict] = None
 _latest_vitals_ts: float = 0.0
+
+# --- Doctor comments (in-memory, per patient) ----------------------------- #
+# Shared across all viewers so a comment posted from one place is visible
+# everywhere. No database: these reset when the server restarts (fine for the
+# demo). Keep the most recent MAX_COMMENTS per patient.
+MAX_COMMENTS = 200
+_comments: Dict[str, List[dict]] = {}
+_comment_ids = itertools.count(1)
+
+
+def add_comment(patient_id: str, text: str, author: str = "Doctor") -> dict:
+    """Store a doctor comment for a patient and return the created record."""
+    comment = {
+        "id": next(_comment_ids),
+        "patient_id": patient_id,
+        "author": author,
+        "text": text,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    thread = _comments.setdefault(patient_id, [])
+    thread.append(comment)
+    # Trim oldest if the thread grows too large.
+    if len(thread) > MAX_COMMENTS:
+        del thread[: len(thread) - MAX_COMMENTS]
+    return comment
+
+
+def get_comments(patient_id: str) -> List[dict]:
+    """Return a patient's comments, newest first."""
+    return list(reversed(_comments.get(patient_id, [])))
 
 
 def update_vitals(vitals: dict) -> None:
