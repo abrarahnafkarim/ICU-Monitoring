@@ -1,8 +1,10 @@
 import {
   Activity,
   AlertTriangle,
+  Download,
   Droplets,
   HeartPulse,
+  Printer,
   ScrollText,
   ShieldCheck,
   Thermometer,
@@ -17,6 +19,7 @@ import { Card } from "../components/ui/Card";
 import { useEvents } from "../hooks/useEvents";
 import { usePatient } from "../hooks/usePatient";
 import { useVitals } from "../hooks/useVitals";
+import { downloadLogCsv } from "../lib/exportLog";
 import type { PatientEvent } from "../types";
 
 function formatStamp(iso: string): string {
@@ -91,10 +94,31 @@ export function PatientLog() {
     <div className="min-h-screen">
       <Navbar online={status === "online"} showBack />
 
-      <main className="safe-bottom mx-auto flex max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6">
-        <div className="animate-fade-in flex items-center gap-2">
-          <ScrollText size={20} className="text-primary" strokeWidth={2.2} />
-          <h1 className="text-xl font-bold text-text">Log Overview</h1>
+      <main
+        id="printable-log"
+        className="safe-bottom mx-auto flex max-w-7xl flex-col gap-5 px-4 pt-6 sm:px-6"
+      >
+        <div className="animate-fade-in flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <ScrollText size={20} className="text-primary" strokeWidth={2.2} />
+            <h1 className="text-xl font-bold text-text">Log Overview</h1>
+          </div>
+          <div className="no-print flex items-center gap-2">
+            <button
+              onClick={() => downloadLogCsv(patient, vitals, events)}
+              className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-primary/10 hover:text-primary"
+            >
+              <Download size={14} strokeWidth={2.2} />
+              Download CSV
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              <Printer size={14} strokeWidth={2.2} />
+              Print / Save PDF
+            </button>
+          </div>
         </div>
 
         <div className="animate-fade-in">

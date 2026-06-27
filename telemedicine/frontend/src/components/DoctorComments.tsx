@@ -83,7 +83,7 @@ export function DoctorComments({ patientId }: { patientId: string }) {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+      <form onSubmit={handleSubmit} className="no-print flex flex-col gap-2">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
