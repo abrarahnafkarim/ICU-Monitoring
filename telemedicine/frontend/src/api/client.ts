@@ -1,7 +1,7 @@
 /** Tiny typed fetch wrapper around the FastAPI REST endpoints. */
 
 import { config } from "../config";
-import type { Comment, Patient, Vitals } from "../types";
+import type { Comment, Patient, PatientEvent, Vitals } from "../types";
 
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`${config.apiBase}${path}`);
@@ -37,6 +37,10 @@ export const api = {
         ? `/latest-vitals?patient=${encodeURIComponent(patientId)}`
         : "/latest-vitals",
     ),
+
+  /** Fetch a patient's clinical event log (newest first). */
+  getEvents: (patientId: string) =>
+    getJson<PatientEvent[]>(`/events?patient=${encodeURIComponent(patientId)}`),
 
   /** Fetch a patient's doctor comments (newest first). */
   getComments: (patientId: string) =>

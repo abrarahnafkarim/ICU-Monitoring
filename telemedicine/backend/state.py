@@ -51,6 +51,44 @@ def get_comments(patient_id: str) -> List[dict]:
     return list(reversed(_comments.get(patient_id, [])))
 
 
+# --- Patient event log (in-memory, per patient) --------------------------- #
+# A running log of clinical events (alert onsets) for the per-patient history /
+# log-overview page. Like comments: shared across viewers, no database, resets
+# on restart. Newest kept; oldest trimmed past MAX_EVENTS.
+MAX_EVENTS = 300
+_events: Dict[str, List[dict]] = {}
+_event_ids = itertools.count(1)
+
+
+def add_event(
+    patient_id: str,
+    event_type: str,
+    severity: str,
+    title: str,
+    detail: str,
+) -> dict:
+    """Append a clinical event to a patient's log and return the record."""
+    event = {
+        "id": next(_event_ids),
+        "patient_id": patient_id,
+        "type": event_type,
+        "severity": severity,
+        "title": title,
+        "detail": detail,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    log = _events.setdefault(patient_id, [])
+    log.append(event)
+    if len(log) > MAX_EVENTS:
+        del log[: len(log) - MAX_EVENTS]
+    return event
+
+
+def get_events(patient_id: str) -> List[dict]:
+    """Return a patient's event log, newest first."""
+    return list(reversed(_events.get(patient_id, [])))
+
+
 def update_vitals(vitals: dict) -> None:
     """Store the most recent vitals pushed by the Pi."""
     global _latest_vitals, _latest_vitals_ts

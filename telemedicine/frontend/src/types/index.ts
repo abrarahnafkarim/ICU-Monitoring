@@ -61,3 +61,14 @@ export interface Comment {
   text: string;
   timestamp: string; // ISO 8601, UTC
 }
+
+/** A logged clinical event (alert onset), returned by `GET /events`. */
+export interface PatientEvent {
+  id: number;
+  patient_id: string;
+  type: string;
+  severity: AlertSeverity;
+  title: string;
+  detail: string;
+  timestamp: string; // ISO 8601, UTC
+}

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { useParams } from "react-router-dom";
-import { Siren } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ScrollText, Siren } from "lucide-react";
 
 import { api } from "../api/client";
 import { AlertPanel } from "../components/AlertPanel";
@@ -17,6 +17,7 @@ import { computeAlerts } from "../lib/alerts";
 
 export function Dashboard() {
   const { patientId } = useParams<{ patientId: string }>();
+  const navigate = useNavigate();
   const patient = usePatient(patientId);
   const { vitals, status } = useVitals(patient.patient_id);
   const alerts = useMemo(() => computeAlerts(vitals), [vitals]);
@@ -33,14 +34,25 @@ export function Dashboard() {
         <section className="animate-fade-in">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="section-title">Live Vitals</h2>
-            <button
-              onClick={() => api.simulateAnomaly(patient.patient_id).catch(() => {})}
-              title="Demo: briefly force an abnormal vital to test alerts"
-              className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-danger/10 hover:text-danger"
-            >
-              <Siren size={14} strokeWidth={2.2} />
-              Simulate alert
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  navigate(`/dashboard/${patient.patient_id}/log`)
+                }
+                className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-primary/10 hover:text-primary"
+              >
+                <ScrollText size={14} strokeWidth={2.2} />
+                Log Overview
+              </button>
+              <button
+                onClick={() => api.simulateAnomaly(patient.patient_id).catch(() => {})}
+                title="Demo: briefly force an abnormal vital to test alerts"
+                className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+              >
+                <Siren size={14} strokeWidth={2.2} />
+                Simulate alert
+              </button>
+            </div>
           </div>
           <VitalsGrid vitals={vitals} />
         </section>

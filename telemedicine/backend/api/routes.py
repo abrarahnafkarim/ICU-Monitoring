@@ -86,6 +86,16 @@ class CommentCreate(BaseModel):
     author: Optional[str] = None
 
 
+class Event(BaseModel):
+    id: int
+    patient_id: str
+    type: str
+    severity: str
+    title: str
+    detail: str
+    timestamp: str  # ISO 8601, UTC
+
+
 _VALID_PATIENT_IDS = {p["patient_id"] for p in PATIENTS}
 
 
@@ -139,6 +149,42 @@ def _classify_ecg(heart_rate: int) -> str:
     if heart_rate < 50:
         return "Bradycardia"
     return "Normal"
+
+
+# --- Server-side alert thresholds -> patient event log -------------------- #
+# Single source of truth for "what's an issue", mirrored on the frontend
+# (lib/alerts.ts). Each rule: (id, severity, title, predicate, detail builder).
+def _alert_rules(v: "Vitals"):
+    return [
+        ("hr-high", "danger", "High Heart Rate",
+         v.heart_rate > 120, f"Heart rate {v.heart_rate} BPM is above 120 BPM."),
+        ("hr-low", "danger", "Low Heart Rate",
+         v.heart_rate < 50, f"Heart rate {v.heart_rate} BPM is below 50 BPM."),
+        ("spo2-low", "danger", "Low Blood Oxygen",
+         v.spo2 < 92, f"SpO2 {v.spo2}% is below 92%."),
+        ("temp-high", "warning", "High Body Temperature",
+         v.temperature > 38.5, f"Temperature {v.temperature:.1f}°C is above 38.5°C."),
+        ("rr-high", "warning", "High Respiratory Rate",
+         v.respiratory_rate > 24, f"Respiratory rate {v.respiratory_rate} br/min is above 24."),
+        ("rr-low", "warning", "Low Respiratory Rate",
+         v.respiratory_rate < 8, f"Respiratory rate {v.respiratory_rate} br/min is below 8."),
+    ]
+
+
+# Tracks currently-active alert ids per patient so each episode logs once.
+_active_alerts: Dict[str, set] = {}
+
+
+def _log_threshold_events(patient_id: str, vitals: "Vitals") -> None:
+    """Detect alert onsets and append them to the patient's event log."""
+    active_now = set()
+    prev = _active_alerts.get(patient_id, set())
+    for rule_id, severity, title, fired, detail in _alert_rules(vitals):
+        if fired:
+            active_now.add(rule_id)
+            if rule_id not in prev:  # onset only
+                state.add_event(patient_id, rule_id, severity, title, detail)
+    _active_alerts[patient_id] = active_now
 
 
 # --- Patient 2: independent simulation ------------------------------------ #
@@ -203,26 +249,27 @@ def get_latest_vitals(patient: Optional[str] = None) -> Vitals:
 
     if patient == "P-002":
         base = _simulate_patient2()
-        return _apply_anomaly(patient_id, base)
+    else:
+        pushed = state.get_fresh_vitals()
+        if pushed is not None:
+            base = Vitals(**pushed)
+        else:
+            heart_rate = max30102.read_heart_rate()
+            spo2 = max30102.read_spo2()
+            temperature = mlx90614.read_temperature()
+            respiratory_rate = respiration.read_respiratory_rate()
+            ad8232.set_heart_rate(heart_rate)
+            base = Vitals(
+                heart_rate=heart_rate,
+                spo2=spo2,
+                temperature=temperature,
+                ecg_status=_classify_ecg(heart_rate),
+                respiratory_rate=respiratory_rate,
+            )
 
-    pushed = state.get_fresh_vitals()
-    if pushed is not None:
-        return _apply_anomaly(patient_id, Vitals(**pushed))
-
-    heart_rate = max30102.read_heart_rate()
-    spo2 = max30102.read_spo2()
-    temperature = mlx90614.read_temperature()
-    respiratory_rate = respiration.read_respiratory_rate()
-    ad8232.set_heart_rate(heart_rate)
-
-    base = Vitals(
-        heart_rate=heart_rate,
-        spo2=spo2,
-        temperature=temperature,
-        ecg_status=_classify_ecg(heart_rate),
-        respiratory_rate=respiratory_rate,
-    )
-    return _apply_anomaly(patient_id, base)
+    final = _apply_anomaly(patient_id, base)
+    _log_threshold_events(patient_id, final)
+    return final
 
 
 @router.post("/ingest/vitals")
@@ -254,6 +301,15 @@ def ingest_vitals(
     # Keep the simulated-ECG rhythm aligned in case we briefly fall back.
     ad8232.set_heart_rate(payload.heart_rate)
     return {"ok": True}
+
+
+# --- Patient event log ---------------------------------------------------- #
+@router.get("/events", response_model=List[Event])
+def get_events(patient: str) -> List[Event]:
+    """Return a patient's clinical event log (alert onsets), newest first."""
+    if patient not in _VALID_PATIENT_IDS:
+        raise HTTPException(status_code=404, detail="Unknown patient")
+    return [Event(**e) for e in state.get_events(patient)]
 
 
 # --- Doctor comments ------------------------------------------------------ #

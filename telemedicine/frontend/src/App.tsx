@@ -5,6 +5,7 @@ import { useAuth } from "./auth/AuthContext";
 import { Dashboard } from "./pages/Dashboard";
 import { Login } from "./pages/Login";
 import { PatientList } from "./pages/PatientList";
+import { PatientLog } from "./pages/PatientLog";
 
 /** Redirects to the login page when the user is not authenticated. */
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -34,6 +35,14 @@ export default function App() {
         element={
           <RequireAuth>
             <Dashboard />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/dashboard/:patientId/log"
+        element={
+          <RequireAuth>
+            <PatientLog />
           </RequireAuth>
         }
       />
