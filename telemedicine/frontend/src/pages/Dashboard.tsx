@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { useParams } from "react-router-dom";
+import { Siren } from "lucide-react";
 
+import { api } from "../api/client";
 import { AlertPanel } from "../components/AlertPanel";
 import { CameraFeed } from "../components/CameraFeed";
 import { DoctorComments } from "../components/DoctorComments";
@@ -29,7 +31,17 @@ export function Dashboard() {
         </div>
 
         <section className="animate-fade-in">
-          <h2 className="section-title mb-3">Live Vitals</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="section-title">Live Vitals</h2>
+            <button
+              onClick={() => api.simulateAnomaly(patient.patient_id).catch(() => {})}
+              title="Demo: briefly force an abnormal vital to test alerts"
+              className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+            >
+              <Siren size={14} strokeWidth={2.2} />
+              Simulate alert
+            </button>
+          </div>
           <VitalsGrid vitals={vitals} />
         </section>
 

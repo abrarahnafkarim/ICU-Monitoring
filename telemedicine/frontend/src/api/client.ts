@@ -49,4 +49,12 @@ export const api = {
       text,
       author,
     }),
+
+  /** Demo only: force an abnormal vital so the alert/notification fires. */
+  simulateAnomaly: (patientId: string, field = "heart_rate") =>
+    postJson<{ ok: boolean }>("/simulate-anomaly", {
+      patient_id: patientId,
+      field,
+      duration_seconds: 20,
+    }),
 };

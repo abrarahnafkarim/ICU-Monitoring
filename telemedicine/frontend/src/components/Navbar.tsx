@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { useClock } from "../hooks/useClock";
+import { NotificationBell } from "../notifications/NotificationBell";
 import { InstallButton } from "./InstallButton";
 import { OnlineIndicator } from "./ui/OnlineIndicator";
 
@@ -69,6 +70,7 @@ export function Navbar({ online = true, showBack = false }: NavbarProps) {
             {formatTime(now)}
           </span>
           <OnlineIndicator online={online} label={online ? "Online" : "Offline"} />
+          <NotificationBell />
           <InstallButton />
           <button
             onClick={handleLogout}

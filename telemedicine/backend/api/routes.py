@@ -12,7 +12,8 @@ POST /ingest/vitals  -> the Raspberry Pi pushes a vitals reading here
 from __future__ import annotations
 
 import random
-from typing import List, Optional
+import time
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
@@ -88,6 +89,49 @@ class CommentCreate(BaseModel):
 _VALID_PATIENT_IDS = {p["patient_id"] for p in PATIENTS}
 
 
+# --- Demo: temporarily force an abnormal vital so alerts/notifications fire - #
+# Maps patient_id -> {"field": str, "value": float, "until": epoch_seconds}.
+# Used only to demonstrate the notification system (the normal sim never crosses
+# the alert thresholds). Each anomaly auto-expires.
+_anomalies: Dict[str, dict] = {}
+
+
+class AnomalyRequest(BaseModel):
+    patient_id: str
+    # One of: heart_rate, spo2, temperature, respiratory_rate. Default picks a
+    # clearly-abnormal high heart rate.
+    field: str = "heart_rate"
+    value: Optional[float] = None
+    duration_seconds: int = 20
+
+
+_ANOMALY_DEFAULTS = {
+    "heart_rate": 132.0,      # > 120 -> High Heart Rate (danger)
+    "spo2": 88.0,             # < 92  -> Low Blood Oxygen (danger)
+    "temperature": 39.2,      # > 38.5 -> High Body Temperature (warning)
+    "respiratory_rate": 27.0,  # > 24  -> High Respiratory Rate (warning)
+}
+
+
+def _apply_anomaly(patient_id: str, vitals: "Vitals") -> "Vitals":
+    """Overlay an active demo anomaly onto a patient's vitals, if any."""
+    a = _anomalies.get(patient_id)
+    if not a:
+        return vitals
+    if time.time() > a["until"]:
+        _anomalies.pop(patient_id, None)
+        return vitals
+
+    data = vitals.model_dump()
+    field, value = a["field"], a["value"]
+    if field == "temperature":
+        data[field] = round(float(value), 1)
+    else:
+        data[field] = int(round(value))
+    data["ecg_status"] = _classify_ecg(data["heart_rate"])
+    return Vitals(**data)
+
+
 def _classify_ecg(heart_rate: int) -> str:
     """Derive a simple ECG status label from the heart rate."""
     if heart_rate > 120:
@@ -155,12 +199,15 @@ def get_latest_vitals(patient: Optional[str] = None) -> Vitals:
     by the Pi; if none has arrived (or it is stale), it falls back to locally
     simulated values so the dashboard still works for a demo.
     """
+    patient_id = patient or "P-001"
+
     if patient == "P-002":
-        return _simulate_patient2()
+        base = _simulate_patient2()
+        return _apply_anomaly(patient_id, base)
 
     pushed = state.get_fresh_vitals()
     if pushed is not None:
-        return Vitals(**pushed)
+        return _apply_anomaly(patient_id, Vitals(**pushed))
 
     heart_rate = max30102.read_heart_rate()
     spo2 = max30102.read_spo2()
@@ -168,13 +215,14 @@ def get_latest_vitals(patient: Optional[str] = None) -> Vitals:
     respiratory_rate = respiration.read_respiratory_rate()
     ad8232.set_heart_rate(heart_rate)
 
-    return Vitals(
+    base = Vitals(
         heart_rate=heart_rate,
         spo2=spo2,
         temperature=temperature,
         ecg_status=_classify_ecg(heart_rate),
         respiratory_rate=respiratory_rate,
     )
+    return _apply_anomaly(patient_id, base)
 
 
 @router.post("/ingest/vitals")
@@ -232,3 +280,39 @@ def post_comment(payload: CommentCreate) -> Comment:
     author = (payload.author or "Doctor").strip() or "Doctor"
     created = state.add_comment(payload.patient_id, text, author)
     return Comment(**created)
+
+
+# --- Demo: trigger a patient anomaly (to exercise notifications) ----------- #
+@router.post("/simulate-anomaly")
+def simulate_anomaly(payload: AnomalyRequest) -> dict:
+    """
+    Temporarily force an abnormal vital so the alert/notification system fires.
+
+    For demos only — the normal simulation never crosses the alert thresholds.
+    The anomaly auto-expires after ``duration_seconds``.
+    """
+    if payload.patient_id not in _VALID_PATIENT_IDS:
+        raise HTTPException(status_code=404, detail="Unknown patient")
+    if payload.field not in _ANOMALY_DEFAULTS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"field must be one of {sorted(_ANOMALY_DEFAULTS)}",
+        )
+
+    value = payload.value
+    if value is None:
+        value = _ANOMALY_DEFAULTS[payload.field]
+    duration = max(5, min(120, payload.duration_seconds))
+
+    _anomalies[payload.patient_id] = {
+        "field": payload.field,
+        "value": float(value),
+        "until": time.time() + duration,
+    }
+    return {
+        "ok": True,
+        "patient_id": payload.patient_id,
+        "field": payload.field,
+        "value": value,
+        "expires_in": duration,
+    }
